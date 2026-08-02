@@ -360,6 +360,23 @@ input::placeholder {
   letter-spacing: 0.04em;
 }
 
+.today-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.widget-button {
+  color: var(--ink);
+  background: var(--accent-wash);
+  text-decoration: none;
+}
+
+.widget-button:hover {
+  border-color: var(--accent-deep);
+  background: var(--accent);
+}
+
 .today-button:hover {
   color: var(--ink);
   border-color: var(--ink);
