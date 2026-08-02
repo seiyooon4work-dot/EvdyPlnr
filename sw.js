@@ -1,4 +1,4 @@
-const CACHE_NAME = "daylist-static-v2";
+const CACHE_NAME = "daylist-static-v3";
 const APP_SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -20,4 +20,16 @@ self.addEventListener("fetch", (event) => {
     caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
     return response;
   }).catch(() => caches.match("./index.html"))));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      const appUrl = new URL("./", self.registration.scope).href;
+      const matchingClient = clientList.find((client) => client.url.startsWith(self.registration.scope));
+      if (matchingClient) return matchingClient.focus();
+      return self.clients.openWindow(appUrl);
+    }),
+  );
 });
