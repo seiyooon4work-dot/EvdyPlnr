@@ -30,6 +30,13 @@ const elements = {
   taskList: document.querySelector("#taskList"),
   taskEmpty: document.querySelector("#taskEmpty"),
   taskProgress: document.querySelector("#taskProgress"),
+  reminderForm: document.querySelector("#reminderForm"),
+  reminderTime: document.querySelector("#reminderTime"),
+  reminderText: document.querySelector("#reminderText"),
+  reminderList: document.querySelector("#reminderList"),
+  reminderEmpty: document.querySelector("#reminderEmpty"),
+  notificationPermissionButton: document.querySelector("#notificationPermissionButton"),
+  notificationStatus: document.querySelector("#notificationStatus"),
   meals: {
     breakfast: document.querySelector("#breakfastInput"),
     lunch: document.querySelector("#lunchInput"),
@@ -40,7 +47,7 @@ const elements = {
   selectedDayTitle: document.querySelector("#selectedDayTitle"),
   selectedDaySummary: document.querySelector("#selectedDaySummary"),
   selectedDayDone: document.querySelector("#selectedDayDone"),
-  selectedDayEnergy: document.querySelector("#selectedDayEnergy"),
+  selectedDayReminders: document.querySelector("#selectedDayReminders"),
   weekChart: document.querySelector("#weekChart"),
   weekChartCount: document.querySelector("#weekChartCount"),
   insightHeadline: document.querySelector("#insightHeadline"),
@@ -62,6 +69,7 @@ function createEmptyEntry() {
     done: "",
     tasks: [],
     meals: { breakfast: "", lunch: "", dinner: "" },
+    reminders: [],
     review: null,
   };
 }
@@ -78,6 +86,7 @@ function loadEntries() {
 
 function normalizeEntry(entry) {
   const tasks = Array.isArray(entry?.tasks) ? entry.tasks : [];
+  const reminders = Array.isArray(entry?.reminders) ? entry.reminders : [];
   const oldDone = [entry?.done, entry?.note, entry?.focus].find((value) => typeof value === "string") || "";
   const sourceMeals = entry?.meals && typeof entry.meals === "object" ? entry.meals : {};
   return {
@@ -94,6 +103,15 @@ function normalizeEntry(entry) {
       lunch: typeof sourceMeals.lunch === "string" ? sourceMeals.lunch.slice(0, 120) : "",
       dinner: typeof sourceMeals.dinner === "string" ? sourceMeals.dinner.slice(0, 120) : "",
     },
+    reminders: reminders
+      .filter((reminder) => reminder && /^([01]\d|2[0-3]):[0-5]\d$/.test(reminder.time) && typeof reminder.text === "string")
+      .map((reminder) => ({
+        id: String(reminder.id || createId()),
+        time: reminder.time,
+        text: reminder.text.slice(0, 80),
+        enabled: reminder.enabled !== false,
+        notifiedDate: typeof reminder.notifiedDate === "string" ? reminder.notifiedDate : null,
+      })),
     review: entry?.review && typeof entry.review === "object" ? entry.review : null,
   };
 }
@@ -161,12 +179,18 @@ function hasEntry(entry) {
       (entry.done.trim() ||
         Object.values(entry.meals).some((meal) => meal.trim()) ||
         entry.tasks.length ||
+        entry.reminders.length ||
         (entry.review && Object.values(entry.review).some(Boolean))),
   );
 }
 
 function countMeals(entry) {
   return Object.values(entry?.meals || {}).filter((meal) => meal.trim()).length;
+}
+
+function getNotificationPermission() {
+  if (!window.isSecureContext || !("Notification" in window)) return "unsupported";
+  return Notification.permission;
 }
 
 function escapeHTML(value) {
@@ -221,6 +245,7 @@ function renderToday() {
     if (document.activeElement !== input) input.value = entry.meals[meal];
   });
   renderTasks(entry);
+  renderReminders(entry);
 }
 
 function renderTasks(entry) {
@@ -234,6 +259,39 @@ function renderTasks(entry) {
           <button class="task-check${task.done ? " is-done" : ""}" type="button" data-task-toggle="${escapeHTML(task.id)}" aria-label="${task.done ? "완료 취소" : "완료 처리"}: ${escapeHTML(task.text)}"><span>✓</span></button>
           <span class="task-text" title="${escapeHTML(task.text)}">${escapeHTML(task.text)}</span>
           <button class="task-delete" type="button" data-task-delete="${escapeHTML(task.id)}" aria-label="할 일 삭제">×</button>
+        </li>`,
+    )
+    .join("");
+}
+
+function renderReminders(entry) {
+  const permission = getNotificationPermission();
+  const canRequest = permission !== "unsupported";
+  const granted = permission === "granted";
+  const hasSecureContext = window.isSecureContext;
+
+  elements.notificationPermissionButton.disabled = !canRequest || granted;
+  elements.notificationPermissionButton.classList.toggle("is-granted", granted);
+  elements.notificationPermissionButton.textContent = granted ? "알림 켜짐" : permission === "denied" ? "알림 차단됨" : "알림 켜기";
+  if (!hasSecureContext || !canRequest) {
+    elements.notificationStatus.textContent = "GitHub Pages 주소나 홈 화면 앱에서 알림을 켤 수 있어요.";
+  } else if (granted) {
+    elements.notificationStatus.textContent = "알림을 켜두면 정한 시간에 이 기기에서 알려드려요.";
+  } else if (permission === "denied") {
+    elements.notificationStatus.textContent = "브라우저 설정에서 하루기록의 알림 권한을 허용해주세요.";
+  } else {
+    elements.notificationStatus.textContent = "알림을 켜면 정한 시간에 이 기기에서 알려드려요.";
+  }
+
+  elements.reminderEmpty.hidden = entry.reminders.length > 0;
+  elements.reminderList.innerHTML = entry.reminders
+    .map(
+      (reminder) => `
+        <li class="reminder-item${reminder.enabled ? "" : " is-disabled"}">
+          <button class="reminder-toggle${reminder.enabled ? " is-enabled" : ""}" type="button" data-reminder-toggle="${escapeHTML(reminder.id)}" aria-label="${reminder.enabled ? "알림 끄기" : "알림 켜기"}: ${escapeHTML(reminder.text)}">${reminder.enabled ? "✓" : ""}</button>
+          <time class="reminder-time" datetime="${reminder.time}">${reminder.time}</time>
+          <span class="reminder-text" title="${escapeHTML(reminder.text)}">${escapeHTML(reminder.text)}</span>
+          <button class="reminder-delete" type="button" data-reminder-delete="${escapeHTML(reminder.id)}" aria-label="알림 삭제">×</button>
         </li>`,
     )
     .join("");
@@ -273,9 +331,9 @@ function renderCalendar() {
     .map(([meal, text]) => `${MEAL_LABELS[meal]} ${summarizeText(text)}`)
     .join(" · ");
   elements.selectedDayTitle.textContent = formatDateLabel(state.selectedDate);
-  elements.selectedDaySummary.textContent = summarizeText(selectedEntry.done) || meals || (selectedEntry.tasks.length ? `${selectedEntry.tasks.length}개의 할 일이 있어요.` : "아직 기록이 없어요.");
+  elements.selectedDaySummary.textContent = summarizeText(selectedEntry.done) || meals || (selectedEntry.tasks.length ? `${selectedEntry.tasks.length}개의 할 일이 있어요.` : selectedEntry.reminders.length ? `${selectedEntry.reminders.length}개의 알림이 있어요.` : "아직 기록이 없어요.");
   elements.selectedDayDone.textContent = `${done} / ${selectedEntry.tasks.length}`;
-  if (elements.selectedDayEnergy) elements.selectedDayEnergy.textContent = "—";
+  elements.selectedDayReminders.textContent = selectedEntry.reminders.length;
 }
 
 function getLastSevenDates(endValue = toISODate(today)) {
@@ -314,7 +372,7 @@ function renderInsights() {
     .map(({ date, entry }) => {
       const logged = hasEntry(entry);
       const done = entry?.tasks?.filter((task) => task.done).length || 0;
-      const amount = logged ? Math.max(24, Math.min(100, 35 + done * 14 + (entry?.done?.trim() ? 20 : 0) + countMeals(entry) * 10)) : 8;
+      const amount = logged ? Math.max(24, Math.min(100, 35 + done * 14 + (entry?.done?.trim() ? 20 : 0) + countMeals(entry) * 10 + (entry?.reminders?.length || 0) * 7)) : 8;
       const isToday = date === toISODate(today);
       return `<div class="week-bar-group" title="${formatDateLabel(date)}"><div class="week-bar-track"><span class="week-bar${logged ? " has-entry" : ""}${isToday ? " is-today" : ""}" style="height:${amount}%"></span></div><span class="week-bar-label${isToday ? " is-today" : ""}">${DAY_SHORT_NAMES[parseISODate(date).getDay()]}${entry?.tasks?.length ? ` · ${done}` : ""}</span></div>`;
     })
@@ -362,6 +420,101 @@ function deleteTask(id) {
   getEntry().tasks = getEntry().tasks.filter((task) => task.id !== id);
   queueSave();
   renderAll();
+}
+
+function setDefaultReminderTime() {
+  const rounded = new Date();
+  rounded.setSeconds(0, 0);
+  rounded.setMinutes(rounded.getMinutes() + (30 - (rounded.getMinutes() % 30)));
+  elements.reminderTime.value = `${String(rounded.getHours()).padStart(2, "0")}:${String(rounded.getMinutes()).padStart(2, "0")}`;
+}
+
+function addReminder() {
+  const time = elements.reminderTime.value;
+  const text = elements.reminderText.value.trim();
+  if (!time || !text) {
+    showToast("시간과 알림 내용을 모두 적어주세요.");
+    return;
+  }
+  getEntry().reminders.push({ id: createId(), time, text, enabled: true, notifiedDate: null });
+  queueSave();
+  elements.reminderText.value = "";
+  renderAll();
+  elements.reminderText.focus();
+}
+
+function toggleReminder(id) {
+  const reminder = getEntry().reminders.find((item) => item.id === id);
+  if (!reminder) return;
+  reminder.enabled = !reminder.enabled;
+  reminder.notifiedDate = null;
+  queueSave();
+  renderAll();
+}
+
+function deleteReminder(id) {
+  getEntry().reminders = getEntry().reminders.filter((reminder) => reminder.id !== id);
+  queueSave();
+  renderAll();
+}
+
+async function requestNotifications() {
+  if (getNotificationPermission() === "unsupported") {
+    showToast("GitHub Pages 주소나 홈 화면 앱에서 알림을 켤 수 있어요.");
+    return;
+  }
+  let permission = "denied";
+  try {
+    permission = await Notification.requestPermission();
+  } catch {
+    showToast("브라우저 설정에서 알림 권한을 확인해주세요.");
+    return;
+  }
+  renderAll();
+  showToast(permission === "granted" ? "알림을 켰어요." : "알림 권한이 허용되지 않았어요.");
+}
+
+function timeToMinutes(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function checkDueReminders() {
+  const dateKey = toISODate(new Date());
+  const entry = state.entries[dateKey];
+  if (!entry?.reminders?.length) return;
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  entry.reminders.forEach((reminder) => {
+    const elapsed = currentMinutes - timeToMinutes(reminder.time);
+    if (!reminder.enabled || reminder.notifiedDate === dateKey || elapsed < 0 || elapsed > 5) return;
+    reminder.notifiedDate = dateKey;
+    queueSave();
+    void fireReminder(reminder);
+  });
+}
+
+async function fireReminder(reminder) {
+  const permission = getNotificationPermission();
+  if (permission === "granted") {
+    try {
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification("하루기록 알림", {
+          body: reminder.text,
+          icon: "./icon.svg",
+          tag: `daylist-reminder-${reminder.id}`,
+          data: { url: "./" },
+        });
+        return;
+      }
+      new Notification("하루기록 알림", { body: reminder.text, icon: "./icon.svg" });
+      return;
+    } catch {
+      // Fall through to the in-app message when the browser notification is unavailable.
+    }
+  }
+  showToast(`알림 · ${reminder.text}`);
 }
 
 function openBackup() {
@@ -467,6 +620,18 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const reminderToggle = event.target.closest("[data-reminder-toggle]");
+  if (reminderToggle) {
+    toggleReminder(reminderToggle.dataset.reminderToggle);
+    return;
+  }
+
+  const reminderDelete = event.target.closest("[data-reminder-delete]");
+  if (reminderDelete) {
+    deleteReminder(reminderDelete.dataset.reminderDelete);
+    return;
+  }
+
   const action = event.target.closest("[data-action]");
   if (!action) return;
   if (action.dataset.action === "open-backup") openBackup();
@@ -474,6 +639,7 @@ document.addEventListener("click", (event) => {
   if (action.dataset.action === "export-data") exportData();
   if (action.dataset.action === "import-data") elements.importInput.click();
   if (action.dataset.action === "open-selected-day") switchView("today");
+  if (action.dataset.action === "request-notifications") void requestNotifications();
 });
 
 document.addEventListener("input", (event) => {
@@ -495,6 +661,11 @@ elements.taskForm.addEventListener("submit", (event) => {
   addTask(elements.taskInput.value);
 });
 
+elements.reminderForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  addReminder();
+});
+
 elements.importInput.addEventListener("change", (event) => importData(event.target.files?.[0]));
 
 elements.backupModal.addEventListener("click", (event) => {
@@ -514,4 +685,6 @@ if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
 }
 
+setDefaultReminderTime();
+window.setInterval(checkDueReminders, 15000);
 renderAll();
