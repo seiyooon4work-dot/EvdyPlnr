@@ -1,4 +1,4 @@
-const CACHE_NAME = "daylist-static-v1";
+const CACHE_NAME = "daylist-static-v2";
 const APP_SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {
