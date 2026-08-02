@@ -488,13 +488,13 @@ input::placeholder {
   box-shadow: 0 8px 26px rgba(40, 43, 34, 0.035);
 }
 
-.focus-card,
+.done-card,
 .tasks-card {
   min-height: 286px;
 }
 
-.note-card,
-.energy-card {
+.meals-card {
+  grid-column: 1 / -1;
   min-height: 250px;
 }
 
@@ -532,6 +532,7 @@ input::placeholder {
 }
 
 .focus-input,
+.done-input,
 .note-card textarea {
   display: block;
   width: 100%;
@@ -545,14 +546,17 @@ input::placeholder {
   line-height: 1.7;
 }
 
-.focus-input {
+.focus-input,
+.done-input {
   min-height: 142px;
 }
 
 .card-hint,
 .note-footer,
+.done-footer,
 .energy-question,
 .energy-feedback,
+.meal-intro,
 .rhythm-caption {
   color: var(--muted);
   font-size: 11px;
@@ -707,6 +711,21 @@ input::placeholder {
   font-weight: 500;
 }
 
+.done-input {
+  min-height: 187px;
+  font-size: 16px;
+}
+
+.done-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
 .note-footer {
   display: flex;
   justify-content: space-between;
@@ -715,6 +734,44 @@ input::placeholder {
   border-top: 1px solid var(--line);
   font-family: var(--font-mono);
   font-size: 9px;
+}
+
+.meal-intro {
+  margin: -3px 0 20px;
+}
+
+.meal-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.meal-row {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.meal-row > span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.meal-row input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: 0;
+  background: var(--card-soft);
+  font-size: 12px;
+}
+
+.meal-row input:focus {
+  border-color: var(--accent-deep);
+  box-shadow: 0 0 0 3px rgba(169, 203, 54, 0.12);
 }
 
 .energy-question {
@@ -1431,19 +1488,22 @@ input::placeholder {
     padding: 24px 22px;
   }
 
-  .focus-card,
+  .done-card,
   .tasks-card,
-  .note-card,
-  .energy-card {
+  .meals-card {
     min-height: auto;
   }
 
-  .focus-input {
+  .meals-card {
+    grid-column: auto;
+  }
+
+  .done-input {
     min-height: 124px;
   }
 
-  .note-card textarea {
-    min-height: 132px;
+  .meal-list {
+    grid-template-columns: 1fr;
   }
 
   .calendar-toolbar {
