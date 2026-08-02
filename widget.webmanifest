@@ -1,0 +1,19 @@
+{
+  "name": "하루기록 오늘 위젯",
+  "short_name": "오늘 위젯",
+  "description": "하루기록의 오늘 한 일과 다음 알림을 빠르게 확인합니다.",
+  "start_url": "./widget.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1eb",
+  "theme_color": "#252923",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
