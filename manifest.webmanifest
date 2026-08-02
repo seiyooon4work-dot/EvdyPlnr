@@ -1,0 +1,19 @@
+{
+  "name": "하루기록 · 매일의 플래너",
+  "short_name": "하루기록",
+  "description": "매일의 초점과 할 일, 메모를 한 페이지에 기록하는 나만의 플래너",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1eb",
+  "theme_color": "#f4f1eb",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
