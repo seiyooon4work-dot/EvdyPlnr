@@ -1,13 +1,7 @@
 const STORAGE_KEY = "daylist-planner-v1";
 const DAY_NAMES = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 const DAY_SHORT_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-const ENERGY_LABELS = {
-  1: "천천히 회복하는 날",
-  2: "조용히 흐르는 날",
-  3: "균형을 찾는 날",
-  4: "가볍게 나아가는 날",
-  5: "마음이 꽉 찬 날",
-};
+const MEAL_LABELS = { breakfast: "아침", lunch: "점심", dinner: "저녁" };
 
 const today = new Date();
 const state = {
@@ -29,16 +23,18 @@ const elements = {
   heroKicker: document.querySelector("#heroKicker"),
   heroMessage: document.querySelector("#heroMessage"),
   heroDayNumber: document.querySelector("#heroDayNumber"),
-  focusInput: document.querySelector("#focusInput"),
-  noteInput: document.querySelector("#noteInput"),
-  noteCount: document.querySelector("#noteCount"),
+  doneInput: document.querySelector("#doneInput"),
+  doneCount: document.querySelector("#doneCount"),
   taskForm: document.querySelector("#taskForm"),
   taskInput: document.querySelector("#taskInput"),
   taskList: document.querySelector("#taskList"),
   taskEmpty: document.querySelector("#taskEmpty"),
   taskProgress: document.querySelector("#taskProgress"),
-  energyPicker: document.querySelector("#energyPicker"),
-  energyFeedback: document.querySelector("#energyFeedback"),
+  meals: {
+    breakfast: document.querySelector("#breakfastInput"),
+    lunch: document.querySelector("#lunchInput"),
+    dinner: document.querySelector("#dinnerInput"),
+  },
   calendarMonthLabel: document.querySelector("#calendarMonthLabel"),
   calendarGrid: document.querySelector("#calendarGrid"),
   selectedDayTitle: document.querySelector("#selectedDayTitle"),
@@ -62,16 +58,19 @@ const elements = {
 };
 
 function createEmptyEntry() {
-  return { focus: "", tasks: [], note: "", energy: null };
+  return {
+    done: "",
+    tasks: [],
+    meals: { breakfast: "", lunch: "", dinner: "" },
+    review: null,
+  };
 }
 
 function loadEntries() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
     const source = parsed.entries && typeof parsed.entries === "object" ? parsed.entries : parsed;
-    return Object.fromEntries(
-      Object.entries(source || {}).map(([date, entry]) => [date, normalizeEntry(entry)]),
-    );
+    return Object.fromEntries(Object.entries(source || {}).map(([date, entry]) => [date, normalizeEntry(entry)]));
   } catch {
     return {};
   }
@@ -79,8 +78,10 @@ function loadEntries() {
 
 function normalizeEntry(entry) {
   const tasks = Array.isArray(entry?.tasks) ? entry.tasks : [];
+  const oldDone = [entry?.done, entry?.note, entry?.focus].find((value) => typeof value === "string") || "";
+  const sourceMeals = entry?.meals && typeof entry.meals === "object" ? entry.meals : {};
   return {
-    focus: typeof entry?.focus === "string" ? entry.focus : "",
+    done: oldDone,
     tasks: tasks
       .filter((task) => task && typeof task.text === "string")
       .map((task) => ({
@@ -88,8 +89,12 @@ function normalizeEntry(entry) {
         text: task.text.slice(0, 120),
         done: Boolean(task.done),
       })),
-    note: typeof entry?.note === "string" ? entry.note : "",
-    energy: Number.isInteger(entry?.energy) && entry.energy >= 1 && entry.energy <= 5 ? entry.energy : null,
+    meals: {
+      breakfast: typeof sourceMeals.breakfast === "string" ? sourceMeals.breakfast.slice(0, 120) : "",
+      lunch: typeof sourceMeals.lunch === "string" ? sourceMeals.lunch.slice(0, 120) : "",
+      dinner: typeof sourceMeals.dinner === "string" ? sourceMeals.dinner.slice(0, 120) : "",
+    },
+    review: entry?.review && typeof entry.review === "object" ? entry.review : null,
   };
 }
 
@@ -102,7 +107,7 @@ function saveEntries() {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ version: 1, updatedAt: new Date().toISOString(), entries: state.entries }),
+      JSON.stringify({ version: 2, updatedAt: new Date().toISOString(), entries: state.entries }),
     );
   } catch {
     showToast("이 브라우저에서는 자동 저장을 사용할 수 없어요.");
@@ -146,8 +151,22 @@ function formatMonthLabel(date) {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
 }
 
+function summarizeText(value) {
+  return value.trim().split("\n")[0].slice(0, 70);
+}
+
 function hasEntry(entry) {
-  return Boolean(entry && (entry.focus.trim() || entry.note.trim() || entry.tasks.length || entry.energy));
+  return Boolean(
+    entry &&
+      (entry.done.trim() ||
+        Object.values(entry.meals).some((meal) => meal.trim()) ||
+        entry.tasks.length ||
+        (entry.review && Object.values(entry.review).some(Boolean))),
+  );
+}
+
+function countMeals(entry) {
+  return Object.values(entry?.meals || {}).filter((meal) => meal.trim()).length;
 }
 
 function escapeHTML(value) {
@@ -185,23 +204,23 @@ function renderToday() {
   const date = parseISODate(state.selectedDate);
   const isToday = state.selectedDate === toISODate(today);
   const isFuture = state.selectedDate > toISODate(today);
-  const dayNumber = String(date.getDate()).padStart(2, "0");
 
   elements.todayWeekday.textContent = isToday ? "오늘" : DAY_NAMES[date.getDay()];
   elements.todayDateLabel.textContent = formatDateLabel(state.selectedDate);
-  elements.heroDayNumber.textContent = dayNumber;
-  elements.heroKicker.textContent = isToday ? "TODAY · 기록을 시작해보세요" : `${DAY_SHORT_NAMES[date.getDay()].toUpperCase()} · ${date.getMonth() + 1}월의 기록`;
+  elements.heroDayNumber.textContent = String(date.getDate()).padStart(2, "0");
+  elements.heroKicker.textContent = isToday ? "TODAY · 오늘을 남겨보세요" : `${DAY_SHORT_NAMES[date.getDay()].toUpperCase()} · 하루 기록`;
   elements.heroMessage.textContent = isToday
-    ? "완벽하게 채우지 않아도 괜찮아요. 오늘 남기고 싶은 한 가지부터 적어보세요."
+    ? "한 일, 할 일, 먹은 것만 간단하게 적어도 충분해요."
     : isFuture
-      ? "미리 적어두고 싶은 일을 남겨보세요. 그날의 나에게 도움이 될 거예요."
-      : "그날의 나에게 잠시 다녀왔어요. 남겨둔 기록을 천천히 다시 펼쳐보세요.";
+      ? "미리 적어두고 싶은 할 일을 남겨보세요."
+      : "그날의 기록을 다시 펼쳐보세요. 한 줄이면 충분해요.";
 
-  if (document.activeElement !== elements.focusInput) elements.focusInput.value = entry.focus;
-  if (document.activeElement !== elements.noteInput) elements.noteInput.value = entry.note;
-  elements.noteCount.textContent = `${entry.note.length}자`;
+  if (document.activeElement !== elements.doneInput) elements.doneInput.value = entry.done;
+  elements.doneCount.textContent = `${entry.done.length}자`;
+  Object.entries(elements.meals).forEach(([meal, input]) => {
+    if (document.activeElement !== input) input.value = entry.meals[meal];
+  });
   renderTasks(entry);
-  renderEnergy(entry);
 }
 
 function renderTasks(entry) {
@@ -218,15 +237,6 @@ function renderTasks(entry) {
         </li>`,
     )
     .join("");
-}
-
-function renderEnergy(entry) {
-  elements.energyPicker.querySelectorAll("[data-energy]").forEach((button) => {
-    const selected = Number(button.dataset.energy) === entry.energy;
-    button.classList.toggle("is-selected", selected);
-    button.setAttribute("aria-pressed", String(selected));
-  });
-  elements.energyFeedback.textContent = entry.energy ? `${entry.energy} · ${ENERGY_LABELS[entry.energy]}` : "아직 선택하지 않았어요.";
 }
 
 function renderCalendar() {
@@ -246,22 +256,26 @@ function renderCalendar() {
     const isOutside = date.getMonth() !== month;
     const isToday = iso === todayISO;
     const isSelected = iso === state.selectedDate;
-    const markerNote = hasEntry(entry);
+    const markerRecord = hasEntry(entry);
     const markerDone = entry?.tasks?.some((task) => task.done);
     cells.push(`
-      <button class="calendar-day${isOutside ? " is-outside" : ""}${isToday ? " is-today" : ""}${isSelected ? " is-selected" : ""}" type="button" role="gridcell" data-calendar-date="${iso}" aria-label="${formatDateLabel(iso)}${markerNote ? ", 기록 있음" : ""}">
+      <button class="calendar-day${isOutside ? " is-outside" : ""}${isToday ? " is-today" : ""}${isSelected ? " is-selected" : ""}" type="button" role="gridcell" data-calendar-date="${iso}" aria-label="${formatDateLabel(iso)}${markerRecord ? ", 기록 있음" : ""}">
         <span class="day-number">${date.getDate()}</span>
-        <span class="day-markers" aria-hidden="true">${markerNote ? '<i class="has-note"></i>' : ""}${markerDone ? '<i class="is-complete"></i>' : ""}</span>
+        <span class="day-markers" aria-hidden="true">${markerRecord ? '<i class="has-note"></i>' : ""}${markerDone ? '<i class="is-complete"></i>' : ""}</span>
       </button>`);
   }
   elements.calendarGrid.innerHTML = cells.join("");
 
   const selectedEntry = getEntry(state.selectedDate);
   const done = selectedEntry.tasks.filter((task) => task.done).length;
+  const meals = Object.entries(selectedEntry.meals)
+    .filter(([, meal]) => meal.trim())
+    .map(([meal, text]) => `${MEAL_LABELS[meal]} ${summarizeText(text)}`)
+    .join(" · ");
   elements.selectedDayTitle.textContent = formatDateLabel(state.selectedDate);
-  elements.selectedDaySummary.textContent = selectedEntry.focus.trim() || selectedEntry.note.trim() || (selectedEntry.tasks.length ? `${selectedEntry.tasks.length}개의 할 일이 있어요.` : "아직 기록이 없어요.");
+  elements.selectedDaySummary.textContent = summarizeText(selectedEntry.done) || meals || (selectedEntry.tasks.length ? `${selectedEntry.tasks.length}개의 할 일이 있어요.` : "아직 기록이 없어요.");
   elements.selectedDayDone.textContent = `${done} / ${selectedEntry.tasks.length}`;
-  elements.selectedDayEnergy.textContent = selectedEntry.energy ? `${selectedEntry.energy} / 5` : "—";
+  if (elements.selectedDayEnergy) elements.selectedDayEnergy.textContent = "—";
 }
 
 function getLastSevenDates(endValue = toISODate(today)) {
@@ -294,16 +308,15 @@ function renderInsights() {
   elements.metricLoggedDays.textContent = `${stats.loggedDays}일`;
   elements.metricDoneTasks.textContent = `${stats.doneTasks}개`;
   elements.metricStreak.textContent = `${stats.streak}일`;
-  elements.insightHeadline.textContent = stats.loggedDays === 0 ? "오늘부터 나의 리듬을 시작해요." : stats.loggedDays >= 5 ? "꾸준함이 조용히 빛나고 있어요." : "나만의 속도로 잘 가고 있어요.";
-  elements.insightSubline.textContent = stats.loggedDays === 0 ? "짧은 한 줄도 이 페이지에서는 충분한 기록이에요." : `${stats.loggedDays}일의 기록이 지난 한 주를 만들었어요.`;
+  elements.insightHeadline.textContent = stats.loggedDays === 0 ? "오늘부터 하루를 시작해요." : stats.loggedDays >= 5 ? "꾸준함이 조용히 쌓이고 있어요." : "나만의 속도로 잘 가고 있어요.";
+  elements.insightSubline.textContent = stats.loggedDays === 0 ? "한 일, 할 일, 식단 중 하나만 적어도 기록이에요." : `${stats.loggedDays}일의 기록이 지난 한 주를 만들었어요.`;
   elements.weekChart.innerHTML = stats.entries
     .map(({ date, entry }) => {
       const logged = hasEntry(entry);
       const done = entry?.tasks?.filter((task) => task.done).length || 0;
-      const taskTotal = entry?.tasks?.length || 0;
-      const amount = logged ? Math.max(24, Math.min(100, 35 + done * 14 + (entry?.focus?.trim() ? 20 : 0) + (entry?.note?.trim() ? 12 : 0))) : 8;
+      const amount = logged ? Math.max(24, Math.min(100, 35 + done * 14 + (entry?.done?.trim() ? 20 : 0) + countMeals(entry) * 10)) : 8;
       const isToday = date === toISODate(today);
-      return `<div class="week-bar-group" title="${formatDateLabel(date)}"><div class="week-bar-track"><span class="week-bar${logged ? " has-entry" : ""}${isToday ? " is-today" : ""}" style="height:${amount}%"></span></div><span class="week-bar-label${isToday ? " is-today" : ""}">${DAY_SHORT_NAMES[parseISODate(date).getDay()]}${taskTotal ? ` · ${done}` : ""}</span></div>`;
+      return `<div class="week-bar-group" title="${formatDateLabel(date)}"><div class="week-bar-track"><span class="week-bar${logged ? " has-entry" : ""}${isToday ? " is-today" : ""}" style="height:${amount}%"></span></div><span class="week-bar-label${isToday ? " is-today" : ""}">${DAY_SHORT_NAMES[parseISODate(date).getDay()]}${entry?.tasks?.length ? ` · ${done}` : ""}</span></div>`;
     })
     .join("");
 }
@@ -367,7 +380,7 @@ function closeBackup() {
 function exportData() {
   const payload = {
     app: "하루기록",
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     entries: state.entries,
   };
@@ -454,15 +467,6 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  const energyButton = event.target.closest("[data-energy]");
-  if (energyButton) {
-    const value = Number(energyButton.dataset.energy);
-    getEntry().energy = getEntry().energy === value ? null : value;
-    queueSave();
-    renderAll();
-    return;
-  }
-
   const action = event.target.closest("[data-action]");
   if (!action) return;
   if (action.dataset.action === "open-backup") openBackup();
@@ -476,8 +480,13 @@ document.addEventListener("input", (event) => {
   const field = event.target.closest("[data-field]");
   if (!field) return;
   const entry = getEntry();
-  entry[field.dataset.field] = field.value;
-  if (field.dataset.field === "note") elements.noteCount.textContent = `${field.value.length}자`;
+  if (field.dataset.field === "done") {
+    entry.done = field.value;
+    elements.doneCount.textContent = `${field.value.length}자`;
+  } else if (field.dataset.field.startsWith("meal-")) {
+    const meal = field.dataset.field.replace("meal-", "");
+    if (meal in entry.meals) entry.meals[meal] = field.value;
+  }
   queueSave();
 });
 
