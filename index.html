@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f4f1eb" />
-    <meta name="description" content="매일의 초점과 할 일, 메모를 한 페이지에 기록하는 나만의 플래너" />
+    <meta name="description" content="매일의 한 일, 할 일, 식단과 알림을 한 페이지에 기록하는 나만의 플래너" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="하루기록" />
@@ -106,11 +106,17 @@
                     <p class="eyebrow">01 · DONE</p>
                     <h2>한 일</h2>
                   </div>
-                  <span class="card-symbol" aria-hidden="true">↗</span>
+                  <span id="doneCount" class="progress-label">0개</span>
                 </div>
-                <label class="sr-only" for="doneInput">오늘 한 일</label>
-                <textarea id="doneInput" class="done-input" data-field="done" rows="7" placeholder="오늘 해낸 일을 자유롭게 적어보세요."></textarea>
-                <div class="done-footer"><span>짧은 기록도 좋아요</span><span id="doneCount">0자</span></div>
+                <form id="doneForm" class="done-form">
+                  <label class="sr-only" for="doneTime">한 일 시간</label>
+                  <input id="doneTime" type="time" aria-label="한 일 시간" />
+                  <label class="sr-only" for="doneText">한 일 내용</label>
+                  <input id="doneText" type="text" maxlength="120" placeholder="해낸 일을 적어보세요" />
+                  <button type="submit" aria-label="한 일 추가">+</button>
+                </form>
+                <ul id="doneList" class="done-list" aria-live="polite"></ul>
+                <p id="doneEmpty" class="empty-state">아직 기록한 일이 없어요.<br />해낸 일을 하나 남겨볼까요?</p>
               </section>
 
               <section class="planner-card tasks-card">
@@ -272,6 +278,6 @@
       <div class="noscript-message">하루기록을 사용하려면 브라우저에서 JavaScript를 켜주세요.</div>
     </noscript>
 
-    <script src="./app.js" defer></script>
+    <script src="./app.js?v=4" defer></script>
   </body>
 </html>
