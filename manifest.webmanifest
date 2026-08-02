@@ -1,7 +1,7 @@
 {
   "name": "하루기록 · 매일의 플래너",
   "short_name": "하루기록",
-  "description": "매일의 초점과 할 일, 메모를 한 페이지에 기록하는 나만의 플래너",
+  "description": "매일의 한 일, 할 일, 식단을 한 페이지에 기록하는 나만의 플래너",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
