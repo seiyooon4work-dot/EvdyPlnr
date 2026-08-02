@@ -23,7 +23,11 @@ const elements = {
   heroKicker: document.querySelector("#heroKicker"),
   heroMessage: document.querySelector("#heroMessage"),
   heroDayNumber: document.querySelector("#heroDayNumber"),
-  doneInput: document.querySelector("#doneInput"),
+  doneForm: document.querySelector("#doneForm"),
+  doneTime: document.querySelector("#doneTime"),
+  doneText: document.querySelector("#doneText"),
+  doneList: document.querySelector("#doneList"),
+  doneEmpty: document.querySelector("#doneEmpty"),
   doneCount: document.querySelector("#doneCount"),
   taskForm: document.querySelector("#taskForm"),
   taskInput: document.querySelector("#taskInput"),
@@ -67,6 +71,7 @@ const elements = {
 function createEmptyEntry() {
   return {
     done: "",
+    doneItems: [],
     tasks: [],
     meals: { breakfast: "", lunch: "", dinner: "" },
     reminders: [],
@@ -85,12 +90,28 @@ function loadEntries() {
 }
 
 function normalizeEntry(entry) {
+  const oldDone = [entry?.done, entry?.note, entry?.focus].find((value) => typeof value === "string") || "";
+  const sourceDoneItems = Array.isArray(entry?.doneItems) ? entry.doneItems : [];
+  const normalizedDoneItems = sourceDoneItems
+    .filter((item) => item && typeof item.text === "string" && item.text.trim())
+    .map((item) => ({
+      id: String(item.id || createId()),
+      time: /^([01]\d|2[0-3]):[0-5]\d$/.test(item.time) ? item.time : "",
+      text: item.text.trim().slice(0, 120),
+    }));
+  if (!normalizedDoneItems.length && oldDone.trim()) {
+    oldDone
+      .split(/\r?\n/)
+      .map((text) => text.trim())
+      .filter(Boolean)
+      .forEach((text) => normalizedDoneItems.push({ id: createId(), time: "", text: text.slice(0, 120) }));
+  }
   const tasks = Array.isArray(entry?.tasks) ? entry.tasks : [];
   const reminders = Array.isArray(entry?.reminders) ? entry.reminders : [];
-  const oldDone = [entry?.done, entry?.note, entry?.focus].find((value) => typeof value === "string") || "";
   const sourceMeals = entry?.meals && typeof entry.meals === "object" ? entry.meals : {};
   return {
-    done: oldDone,
+    done: normalizedDoneItems.map((item) => item.text).join("\n"),
+    doneItems: normalizedDoneItems,
     tasks: tasks
       .filter((task) => task && typeof task.text === "string")
       .map((task) => ({
@@ -125,7 +146,7 @@ function saveEntries() {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ version: 2, updatedAt: new Date().toISOString(), entries: state.entries }),
+      JSON.stringify({ version: 3, updatedAt: new Date().toISOString(), entries: state.entries }),
     );
   } catch {
     showToast("이 브라우저에서는 자동 저장을 사용할 수 없어요.");
@@ -239,13 +260,28 @@ function renderToday() {
       ? "미리 적어두고 싶은 할 일을 남겨보세요."
       : "그날의 기록을 다시 펼쳐보세요. 한 줄이면 충분해요.";
 
-  if (document.activeElement !== elements.doneInput) elements.doneInput.value = entry.done;
-  elements.doneCount.textContent = `${entry.done.length}자`;
+  elements.doneCount.textContent = `${entry.doneItems.length}개`;
   Object.entries(elements.meals).forEach(([meal, input]) => {
     if (document.activeElement !== input) input.value = entry.meals[meal];
   });
+  renderDoneItems(entry);
   renderTasks(entry);
   renderReminders(entry);
+}
+
+function renderDoneItems(entry) {
+  elements.doneEmpty.hidden = entry.doneItems.length > 0;
+  elements.doneList.innerHTML = entry.doneItems
+    .map(
+      (item) => `
+        <li class="done-item">
+          <span class="done-check" aria-hidden="true">✓</span>
+          <time class="done-time${item.time ? "" : " is-empty"}" datetime="${item.time}">${item.time || "기록"}</time>
+          <span class="done-text" title="${escapeHTML(item.text)}">${escapeHTML(item.text)}</span>
+          <button class="done-delete" type="button" data-done-delete="${escapeHTML(item.id)}" aria-label="한 일 삭제">×</button>
+        </li>`,
+    )
+    .join("");
 }
 
 function renderTasks(entry) {
@@ -422,6 +458,39 @@ function deleteTask(id) {
   renderAll();
 }
 
+function syncDoneText(entry) {
+  entry.done = entry.doneItems.map((item) => item.text).join("\n");
+}
+
+function setDefaultDoneTime() {
+  const now = new Date();
+  elements.doneTime.value = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+function addDoneItem() {
+  const time = elements.doneTime.value;
+  const text = elements.doneText.value.trim();
+  if (!time || !text) {
+    showToast("시간과 한 일 내용을 모두 적어주세요.");
+    return;
+  }
+  const entry = getEntry();
+  entry.doneItems.push({ id: createId(), time, text });
+  syncDoneText(entry);
+  queueSave();
+  elements.doneText.value = "";
+  renderAll();
+  elements.doneText.focus();
+}
+
+function deleteDoneItem(id) {
+  const entry = getEntry();
+  entry.doneItems = entry.doneItems.filter((item) => item.id !== id);
+  syncDoneText(entry);
+  queueSave();
+  renderAll();
+}
+
 function setDefaultReminderTime() {
   const rounded = new Date();
   rounded.setSeconds(0, 0);
@@ -533,7 +602,7 @@ function closeBackup() {
 function exportData() {
   const payload = {
     app: "하루기록",
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     entries: state.entries,
   };
@@ -608,6 +677,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const doneDelete = event.target.closest("[data-done-delete]");
+  if (doneDelete) {
+    deleteDoneItem(doneDelete.dataset.doneDelete);
+    return;
+  }
+
   const taskToggle = event.target.closest("[data-task-toggle]");
   if (taskToggle) {
     toggleTask(taskToggle.dataset.taskToggle);
@@ -656,6 +731,11 @@ document.addEventListener("input", (event) => {
   queueSave();
 });
 
+elements.doneForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  addDoneItem();
+});
+
 elements.taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
   addTask(elements.taskInput.value);
@@ -682,9 +762,10 @@ window.addEventListener("beforeunload", () => {
 });
 
 if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=4").catch(() => {}));
 }
 
+setDefaultDoneTime();
 setDefaultReminderTime();
 window.setInterval(checkDueReminders, 15000);
 renderAll();
