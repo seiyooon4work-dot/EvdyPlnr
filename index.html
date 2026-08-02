@@ -145,6 +145,26 @@
                   <label class="meal-row" for="dinnerInput"><span>저녁</span><input id="dinnerInput" data-field="meal-dinner" type="text" maxlength="120" placeholder="무엇을 먹었나요?" /></label>
                 </div>
               </section>
+
+              <section class="planner-card reminders-card">
+                <div class="card-heading">
+                  <div>
+                    <p class="eyebrow">04 · REMINDERS</p>
+                    <h2>알림 남기기</h2>
+                  </div>
+                  <button id="notificationPermissionButton" class="permission-button" type="button" data-action="request-notifications">알림 켜기</button>
+                </div>
+                <p id="notificationStatus" class="reminder-intro">정해둔 시간에 이 기기에서 알려드려요.</p>
+                <form id="reminderForm" class="reminder-form">
+                  <label class="sr-only" for="reminderTime">알림 시간</label>
+                  <input id="reminderTime" type="time" aria-label="알림 시간" />
+                  <label class="sr-only" for="reminderText">알림 내용</label>
+                  <input id="reminderText" type="text" maxlength="80" placeholder="예: 물 마시기, 약 챙기기" />
+                  <button type="submit" aria-label="알림 추가">+</button>
+                </form>
+                <ul id="reminderList" class="reminder-list" aria-live="polite"></ul>
+                <p id="reminderEmpty" class="empty-state">아직 정해둔 알림이 없어요.</p>
+              </section>
             </div>
           </section>
 
@@ -176,7 +196,7 @@
                 <button type="button" class="text-button" data-action="open-selected-day">이 날 기록 열기 <span>→</span></button>
                 <div class="selected-day-rule"></div>
                 <div class="selected-day-stat"><span>완료한 일</span><strong id="selectedDayDone">0</strong></div>
-                <div class="selected-day-stat"><span>에너지</span><strong id="selectedDayEnergy">—</strong></div>
+                <div class="selected-day-stat"><span>알림</span><strong id="selectedDayReminders">0</strong></div>
               </section>
             </div>
           </section>
