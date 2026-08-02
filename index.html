@@ -42,7 +42,7 @@
 
         <div class="sidebar-note">
           <span class="eyebrow">이번 주</span>
-          <p>작은 기록도<br /><strong>분명한 흔적</strong>이 됩니다.</p>
+          <p>하루를 가볍게 남기고<br /><strong>내일을 조금 선명하게</strong> 봅니다.</p>
           <div class="week-summary" aria-label="이번 주 기록 요약">
             <div>
               <strong id="sidebarLoggedDays">0</strong>
@@ -89,9 +89,9 @@
 
             <div class="today-hero">
               <div class="hero-copy">
-                <div class="hero-kicker"><span class="live-dot"></span><span id="heroKicker">TODAY · 기록을 시작해보세요</span></div>
-                <h2 id="todayPageTitle">오늘을 조금 더 나답게</h2>
-                <p id="heroMessage">완벽하게 채우지 않아도 괜찮아요. 오늘 남기고 싶은 한 가지부터 적어보세요.</p>
+                <div class="hero-kicker"><span class="live-dot"></span><span id="heroKicker">TODAY · 오늘을 남겨보세요</span></div>
+                <h2 id="todayPageTitle">오늘의 하루를 남겨요</h2>
+                <p id="heroMessage">한 일, 할 일, 먹은 것만 간단하게 적어도 충분해요.</p>
               </div>
               <div class="hero-stamp" aria-hidden="true">
                 <span>DAY</span>
@@ -100,23 +100,23 @@
             </div>
 
             <div class="today-grid">
-              <section class="planner-card focus-card">
+              <section class="planner-card done-card">
                 <div class="card-heading">
                   <div>
-                    <p class="eyebrow">01 · PRIORITY</p>
-                    <h2>오늘의 초점</h2>
+                    <p class="eyebrow">01 · DONE</p>
+                    <h2>한 일</h2>
                   </div>
                   <span class="card-symbol" aria-hidden="true">↗</span>
                 </div>
-                <label class="sr-only" for="focusInput">오늘의 초점</label>
-                <textarea id="focusInput" class="focus-input" data-field="focus" rows="5" placeholder="오늘 꼭 남기고 싶은 한 가지는 무엇인가요?"></textarea>
-                <p class="card-hint">가장 중요한 한 가지에만 시선을 모아보세요.</p>
+                <label class="sr-only" for="doneInput">오늘 한 일</label>
+                <textarea id="doneInput" class="done-input" data-field="done" rows="7" placeholder="오늘 해낸 일을 자유롭게 적어보세요."></textarea>
+                <div class="done-footer"><span>짧은 기록도 좋아요</span><span id="doneCount">0자</span></div>
               </section>
 
               <section class="planner-card tasks-card">
                 <div class="card-heading">
                   <div>
-                    <p class="eyebrow">02 · CHECKLIST</p>
+                    <p class="eyebrow">02 · TO DO</p>
                     <h2>할 일</h2>
                   </div>
                   <span id="taskProgress" class="progress-label">0 / 0</span>
@@ -130,36 +130,20 @@
                 <p id="taskEmpty" class="empty-state">아직 적어둔 일이 없어요.<br />작은 일부터 하나 추가해볼까요?</p>
               </section>
 
-              <section class="planner-card note-card">
+              <section class="planner-card meals-card">
                 <div class="card-heading">
                   <div>
-                    <p class="eyebrow">03 · NOTE</p>
-                    <h2>오늘의 메모</h2>
+                    <p class="eyebrow">03 · MEALS</p>
+                    <h2>식단</h2>
                   </div>
-                  <span class="card-symbol" aria-hidden="true">✎</span>
+                  <span class="card-symbol" aria-hidden="true">⊙</span>
                 </div>
-                <label class="sr-only" for="noteInput">오늘의 메모</label>
-                <textarea id="noteInput" data-field="note" rows="6" placeholder="지나가기 아쉬운 생각이나 기억을 남겨보세요."></textarea>
-                <div class="note-footer"><span>짧게 적어도 충분해요</span><span id="noteCount">0자</span></div>
-              </section>
-
-              <section class="planner-card energy-card">
-                <div class="card-heading">
-                  <div>
-                    <p class="eyebrow">04 · CHECK-IN</p>
-                    <h2>오늘의 에너지</h2>
-                  </div>
-                  <span class="card-symbol" aria-hidden="true">✦</span>
+                <p class="meal-intro">오늘 먹은 것을 아침·점심·저녁으로 가볍게 남겨보세요.</p>
+                <div class="meal-list">
+                  <label class="meal-row" for="breakfastInput"><span>아침</span><input id="breakfastInput" data-field="meal-breakfast" type="text" maxlength="120" placeholder="무엇을 먹었나요?" /></label>
+                  <label class="meal-row" for="lunchInput"><span>점심</span><input id="lunchInput" data-field="meal-lunch" type="text" maxlength="120" placeholder="무엇을 먹었나요?" /></label>
+                  <label class="meal-row" for="dinnerInput"><span>저녁</span><input id="dinnerInput" data-field="meal-dinner" type="text" maxlength="120" placeholder="무엇을 먹었나요?" /></label>
                 </div>
-                <p class="energy-question">지금의 나는 어떤 상태에 가까운가요?</p>
-                <div id="energyPicker" class="energy-picker" role="group" aria-label="오늘의 에너지 선택">
-                  <button type="button" data-energy="1"><span>1</span><small>낮음</small></button>
-                  <button type="button" data-energy="2"><span>2</span><small>조용함</small></button>
-                  <button type="button" data-energy="3"><span>3</span><small>보통</small></button>
-                  <button type="button" data-energy="4"><span>4</span><small>좋음</small></button>
-                  <button type="button" data-energy="5"><span>5</span><small>충만</small></button>
-                </div>
-                <p id="energyFeedback" class="energy-feedback">아직 선택하지 않았어요.</p>
               </section>
             </div>
           </section>
