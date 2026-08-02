@@ -762,7 +762,7 @@ window.addEventListener("beforeunload", () => {
 });
 
 if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=4").catch(() => {}));
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=5").catch(() => {}));
 }
 
 setDefaultDoneTime();
