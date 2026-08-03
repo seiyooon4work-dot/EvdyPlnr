@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>하루기록</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleName</key>
+	<string>하루기록</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>하루기록의 일정을 애플 캘린더에 추가하기 위해 캘린더 접근 권한이 필요합니다.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>하루기록의 일정을 애플 캘린더에 추가하기 위해 캘린더 접근 권한이 필요합니다.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>하루기록의 할 일을 애플 미리 알림에 추가하기 위해 권한이 필요합니다.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>하루기록의 할 일을 애플 미리 알림에 추가하기 위해 권한이 필요합니다.</string>
+	<key>UILaunchScreen</key>
+	<dict>
+	</dict>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+</dict>
+</plist>
